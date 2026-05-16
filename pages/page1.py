@@ -128,7 +128,7 @@ with col2:
 st.subheader('Nuevo registro')
 
 OPERARIOS = [
-    'Seleccionar operario...',
+    'Seleccionar operario...',""
     'Bladimir Recalde',
     'Adriano Paz',
     'Faber Rios',
@@ -138,6 +138,7 @@ OPERARIOS = [
     'Wendy Perez',
     'Robert Delgado',
     'Cristhian Caicedo',
+    'Johan Jaramillo',
     'Brayan Franco',
     
 ]
