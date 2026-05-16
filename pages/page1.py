@@ -130,7 +130,7 @@ st.subheader('Nuevo registro')
 OPERARIOS = [
     'Seleccionar operario...',
     'Bladimir Recalde',
-    'Adriano Paz'
+    'Adriano Paz',
     'Faber Rios',
     'Javier Henao',
     'Julian Palomeque',
