@@ -495,8 +495,12 @@ with col_xlsx:
     
 
 def enviar_reporte_email(df: pd.DataFrame, destinatario: str):
-    remitente  = st.secrets["email"]["remitente"]
-    password   = st.secrets["email"]["password"]
+    try:
+        remitente = st.secrets["email"]["remitente"]
+        password  = st.secrets["email"]["password"]
+    except Exception:
+        st.error("⚠️ Credenciales de email no configuradas en secrets.")
+        return
 
     # Generar archivos
     pdf_bytes  = generar_pdf(df)
@@ -549,8 +553,11 @@ Sistema PTM · Lista de Chequeo
 st.divider()
 st.subheader('📧 Enviar informe por email')
 
-destinatario_default = st.secrets.get("email", {}).get("destinatario", "")
-
+try:
+    destinatario_default = st.secrets["email"]["destinatario"]
+except Exception:
+    destinatario_default = ""
+    
 col_email, col_btn_email = st.columns([3, 1], vertical_alignment='bottom')
 with col_email:
     email_destino = st.text_input(
