@@ -3,6 +3,13 @@ import pandas as pd
 from datetime import datetime, date, time, timedelta
 import io
 import sqlite3
+
+import smtplib
+from email.mime.multipart import MIMEMultipart
+from email.mime.base import MIMEBase
+from email.mime.text import MIMEText
+from email import encoders
+
 from pathlib import Path
 
 from reportlab.lib.pagesizes import letter
@@ -485,3 +492,80 @@ with col_xlsx:
         mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
         use_container_width=True
     )
+    
+
+def enviar_reporte_email(df: pd.DataFrame, destinatario: str):
+    remitente  = st.secrets["email"]["remitente"]
+    password   = st.secrets["email"]["password"]
+
+    # Generar archivos
+    pdf_bytes  = generar_pdf(df)
+    xlsx_bytes = generar_excel(df)
+    ts         = datetime.now().strftime('%Y%m%d_%H%M%S')
+
+    # Construir mensaje
+    msg = MIMEMultipart()
+    msg['From']    = remitente
+    msg['To']      = destinatario
+    msg['Subject'] = f"PTM · Informe PPTMAL03 · {datetime.now().strftime('%d/%m/%Y %H:%M')}"
+
+    cuerpo = f"""
+Estimado equipo,
+
+Se adjunta el informe de la Mesa de Alimentación (PPTMAL03).
+
+Rango: {desc_rango}
+Registros incluidos: {len(df)}
+Generado: {datetime.now().strftime('%d/%m/%Y %H:%M:%S')}
+
+---
+Sistema PTM · Lista de Chequeo
+    """.strip()
+    msg.attach(MIMEText(cuerpo, 'plain'))
+
+    # Adjuntar PDF
+    part_pdf = MIMEBase('application', 'pdf')
+    part_pdf.set_payload(pdf_bytes)
+    encoders.encode_base64(part_pdf)
+    part_pdf.add_header('Content-Disposition',
+                        f'attachment; filename="informe_PPTMAL03_{ts}.pdf"')
+    msg.attach(part_pdf)
+
+    # Adjuntar Excel
+    part_xlsx = MIMEBase('application',
+                         'vnd.openxmlformats-officedocument.spreadsheetml.sheet')
+    part_xlsx.set_payload(xlsx_bytes)
+    encoders.encode_base64(part_xlsx)
+    part_xlsx.add_header('Content-Disposition',
+                         f'attachment; filename="informe_PPTMAL03_{ts}.xlsx"')
+    msg.attach(part_xlsx)
+
+    # Enviar
+    with smtplib.SMTP_SSL('smtp.gmail.com', 465) as smtp:
+        smtp.login(remitente, password)
+        smtp.sendmail(remitente, destinatario, msg.as_string())
+
+# ── Sección de envío por email ────────────────────────────────────────────────
+st.divider()
+st.subheader('📧 Enviar informe por email')
+
+destinatario_default = st.secrets.get("email", {}).get("destinatario", "")
+
+col_email, col_btn_email = st.columns([3, 1], vertical_alignment='bottom')
+with col_email:
+    email_destino = st.text_input(
+        'Destinatario',
+        value=destinatario_default,
+        placeholder='correo@ejemplo.com'
+    )
+with col_btn_email:
+    if st.button('📤 Enviar', use_container_width=True):
+        if not email_destino or '@' not in email_destino:
+            st.warning('⚠️ Ingresa un correo válido.')
+        else:
+            with st.spinner('Enviando...'):
+                try:
+                    enviar_reporte_email(df, email_destino)
+                    st.success(f'Informe enviado a {email_destino} ✓')
+                except Exception as e:
+                    st.error(f'Error al enviar: {e}')
